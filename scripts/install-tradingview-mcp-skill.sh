@@ -60,7 +60,7 @@ if ! command -v xvfb-run >/dev/null 2>&1; then
   install_ok=0
   apt_log="/tmp/tradingview-mcp-apt.log"
   export DEBIAN_FRONTEND=noninteractive
-  if apt-get update -y >"$apt_log" 2>&1 && apt-get install -y xvfb >>"$apt_log" 2>&1; then
+  if /usr/bin/apt update -y >"$apt_log" 2>&1 && /usr/bin/apt install -y xvfb >>"$apt_log" 2>&1; then
     install_ok=1
   fi
   if [ "$install_ok" -ne 1 ]; then
@@ -84,7 +84,7 @@ TV_DEB_TMP="/tmp/tradingview_amd64.deb"
 curl -fL "$TV_DEB_URL" -o "$TV_DEB_TMP"
 if ! dpkg -i "$TV_DEB_TMP"; then
   if [ "$has_real_apt" -eq 1 ]; then
-    apt-get -f install -y >/dev/null 2>&1
+    /usr/bin/apt -f install -y >/dev/null 2>&1
     dpkg -i "$TV_DEB_TMP"
   else
     echo 'TradingView package install failed and apt-get is unavailable for dependency fix.' >&2
