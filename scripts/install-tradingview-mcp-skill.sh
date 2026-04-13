@@ -40,11 +40,14 @@ fi
 if ! command -v xvfb-run >/dev/null 2>&1; then
   install_ok=0
   if command -v apt-get >/dev/null 2>&1; then
+    apt_log="/tmp/tradingview-mcp-apt.log"
     export DEBIAN_FRONTEND=noninteractive
-    if apt-get update -y >/dev/null 2>&1 && apt-get install -y xvfb >/dev/null 2>&1; then
+    if apt-get update -y >"$apt_log" 2>&1 && apt-get install -y xvfb >>"$apt_log" 2>&1; then
       install_ok=1
     else
-      echo 'apt-get is present but failed; trying brew fallback.' >&2
+      echo 'apt-get is present but failed to install xvfb; trying brew fallback.' >&2
+      echo 'apt-get error (tail):' >&2
+      tail -n 50 "$apt_log" >&2 || true
     fi
   fi
   if [ "$install_ok" -ne 1 ] && command -v brew >/dev/null 2>&1; then
