@@ -37,13 +37,24 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 if ! command -v xvfb-run >/dev/null 2>&1; then
-  if ! command -v apt-get >/dev/null 2>&1; then
-    echo 'xvfb-run is missing and apt-get is unavailable.' >&2
+  install_ok=0
+  if command -v apt-get >/dev/null 2>&1; then
+    export DEBIAN_FRONTEND=noninteractive
+    if apt-get update -y >/dev/null 2>&1 && apt-get install -y xvfb >/dev/null 2>&1; then
+      install_ok=1
+    else
+      echo 'apt-get is present but failed; trying brew fallback.' >&2
+    fi
+  fi
+  if [ "$install_ok" -ne 1 ] && command -v brew >/dev/null 2>&1; then
+    if brew install xvfb >/dev/null 2>&1 || brew install xorg-server >/dev/null 2>&1; then
+      install_ok=1
+    fi
+  fi
+  if [ "$install_ok" -ne 1 ]; then
+    echo 'xvfb-run is missing and package installation failed (apt-get/brew).' >&2
     exit 1
   fi
-  export DEBIAN_FRONTEND=noninteractive
-  apt-get update -y
-  apt-get install -y xvfb
 fi
 
 mkdir -p "$WORKSPACE_DIR"
