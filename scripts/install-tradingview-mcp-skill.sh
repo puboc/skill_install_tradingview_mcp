@@ -10,6 +10,7 @@ LAUNCH_SCRIPT="${REPO_DIR}/scripts/launch_tv_debug_linux.sh"
 SERVER_NAME="${SERVER_NAME:-tradingview}"
 SERVER_SCRIPT="${REPO_DIR}/src/server.js"
 STATUS_LOG_FILE="${STATUS_LOG_FILE:-/tmp/tradingview-mcp-install.log}"
+TV_DEB_URL="${TV_DEB_URL:-https://tvd-packages.tradingview.com/ubuntu/stable/latest/jammy/tradingview_amd64.deb}"
 
 log_status() {
   local message="$1"
@@ -56,6 +57,28 @@ if ! command -v xvfb-run >/dev/null 2>&1; then
     exit 1
   fi
 fi
+
+if ! command -v curl >/dev/null 2>&1; then
+  echo 'Missing required command inside container: curl' >&2
+  exit 1
+fi
+if ! command -v dpkg >/dev/null 2>&1; then
+  echo 'Missing required command inside container: dpkg' >&2
+  exit 1
+fi
+
+TV_DEB_TMP="/tmp/tradingview_amd64.deb"
+curl -fL "$TV_DEB_URL" -o "$TV_DEB_TMP"
+if ! dpkg -i "$TV_DEB_TMP"; then
+  if command -v apt-get >/dev/null 2>&1; then
+    apt-get -f install -y >/dev/null 2>&1
+    dpkg -i "$TV_DEB_TMP"
+  else
+    echo 'TradingView package install failed and apt-get is unavailable for dependency fix.' >&2
+    exit 1
+  fi
+fi
+rm -f "$TV_DEB_TMP"
 
 mkdir -p "$WORKSPACE_DIR"
 
@@ -238,6 +261,7 @@ if is_inside_container; then
   LAUNCH_SCRIPT="$LAUNCH_SCRIPT" \
   SERVER_NAME="$SERVER_NAME" \
   SERVER_SCRIPT="$SERVER_SCRIPT" \
+  TV_DEB_URL="$TV_DEB_URL" \
   sh -lc "$INNER_CMD"
 else
   log_status "[tradingview-mcp] install started"
@@ -250,6 +274,7 @@ else
     -e LAUNCH_SCRIPT="$LAUNCH_SCRIPT" \
     -e SERVER_NAME="$SERVER_NAME" \
     -e SERVER_SCRIPT="$SERVER_SCRIPT" \
+    -e TV_DEB_URL="$TV_DEB_URL" \
     "$CONTAINER_NAME" sh -lc "$INNER_CMD"
 fi
 
