@@ -45,26 +45,28 @@ if command -v apt-get >/dev/null 2>&1; then
   fi
 fi
 
+if [ "$has_real_apt" -ne 1 ]; then
+  echo 'Real apt-get is required but not available in this runtime.' >&2
+  if command -v apt-get >/dev/null 2>&1; then
+    echo "Detected apt-get at: $(command -v apt-get)" >&2
+    echo "apt-get --version: $(apt-get --version 2>/dev/null | head -n 1 || true)" >&2
+  else
+    echo 'apt-get command not found in PATH.' >&2
+  fi
+  exit 1
+fi
+
 if ! command -v xvfb-run >/dev/null 2>&1; then
   install_ok=0
-  if [ "$has_real_apt" -eq 1 ]; then
-    apt_log="/tmp/tradingview-mcp-apt.log"
-    export DEBIAN_FRONTEND=noninteractive
-    if apt-get update -y >"$apt_log" 2>&1 && apt-get install -y xvfb >>"$apt_log" 2>&1; then
-      install_ok=1
-    else
-      echo 'apt-get is present but failed to install xvfb; trying brew fallback.' >&2
-      echo 'apt-get error (tail):' >&2
-      tail -n 50 "$apt_log" >&2 || true
-    fi
-  fi
-  if [ "$install_ok" -ne 1 ] && command -v brew >/dev/null 2>&1; then
-    if brew install xvfb >/dev/null 2>&1 || brew install xorg-server >/dev/null 2>&1; then
-      install_ok=1
-    fi
+  apt_log="/tmp/tradingview-mcp-apt.log"
+  export DEBIAN_FRONTEND=noninteractive
+  if apt-get update -y >"$apt_log" 2>&1 && apt-get install -y xvfb >>"$apt_log" 2>&1; then
+    install_ok=1
   fi
   if [ "$install_ok" -ne 1 ]; then
-    echo 'xvfb-run is missing and package installation failed (apt-get/brew).' >&2
+    echo 'apt-get failed to install xvfb.' >&2
+    echo 'apt-get error (tail):' >&2
+    tail -n 50 "$apt_log" >&2 || true
     exit 1
   fi
 fi
