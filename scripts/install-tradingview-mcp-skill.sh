@@ -9,6 +9,12 @@ REPO_DIR="${WORKSPACE_DIR}/tradingview-mcp-jackson"
 LAUNCH_SCRIPT="${REPO_DIR}/scripts/launch_tv_debug_linux.sh"
 SERVER_NAME="${SERVER_NAME:-tradingview}"
 SERVER_SCRIPT="${REPO_DIR}/src/server.js"
+STATUS_LOG_FILE="${STATUS_LOG_FILE:-/tmp/tradingview-mcp-install.log}"
+
+log_status() {
+  local message="$1"
+  printf '[%s] %s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "${message}" >> "${STATUS_LOG_FILE}"
+}
 
 is_inside_container() {
   if [[ -f "/.dockerenv" ]]; then
@@ -211,9 +217,14 @@ EOF
 )"
 
 if is_inside_container; then
+  log_status "[tradingview-mcp] install started"
+  trap 'log_status "[tradingview-mcp] install failed"' ERR
   sh -lc "${INNER_CMD}"
 else
+  log_status "[tradingview-mcp] install started"
+  trap 'log_status "[tradingview-mcp] install failed"' ERR
   docker exec "${CONTAINER_NAME}" sh -lc "${INNER_CMD}"
 fi
 
+log_status "[tradingview-mcp] install completed successfully"
 echo "[tradingview-mcp-skill] Installed and verified MCP server '${SERVER_NAME}' in OpenClaw config."
