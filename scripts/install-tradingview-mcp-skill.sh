@@ -10,7 +10,14 @@ LAUNCH_SCRIPT="${REPO_DIR}/scripts/launch_tv_debug_linux.sh"
 SERVER_NAME="${SERVER_NAME:-tradingview}"
 SERVER_SCRIPT="${REPO_DIR}/src/server.js"
 
-docker exec "${CONTAINER_NAME}" sh -lc "
+is_inside_container() {
+  if [[ -f "/.dockerenv" ]]; then
+    return 0
+  fi
+  grep -qaE '(docker|containerd|kubepods)' /proc/1/cgroup 2>/dev/null
+}
+
+INNER_CMD="$(cat <<EOF
 set -eu
 
 if ! command -v git >/dev/null 2>&1; then
@@ -200,6 +207,13 @@ for path in updated_paths:
 if not verified:
     raise SystemExit('OpenClaw MCP config verification failed for server tradingview.')
 PY
-"
+EOF
+)"
+
+if is_inside_container; then
+  sh -lc "${INNER_CMD}"
+else
+  docker exec "${CONTAINER_NAME}" sh -lc "${INNER_CMD}"
+fi
 
 echo "[tradingview-mcp-skill] Installed and verified MCP server '${SERVER_NAME}' in OpenClaw config."
