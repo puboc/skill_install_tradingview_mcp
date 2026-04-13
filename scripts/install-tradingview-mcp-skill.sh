@@ -37,9 +37,17 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 
+has_real_apt=0
+if command -v apt-get >/dev/null 2>&1; then
+  apt_version_line="$(apt-get --version 2>/dev/null | head -n 1 || true)"
+  if printf '%s' "$apt_version_line" | grep -Eq '^apt '; then
+    has_real_apt=1
+  fi
+fi
+
 if ! command -v xvfb-run >/dev/null 2>&1; then
   install_ok=0
-  if command -v apt-get >/dev/null 2>&1; then
+  if [ "$has_real_apt" -eq 1 ]; then
     apt_log="/tmp/tradingview-mcp-apt.log"
     export DEBIAN_FRONTEND=noninteractive
     if apt-get update -y >"$apt_log" 2>&1 && apt-get install -y xvfb >>"$apt_log" 2>&1; then
@@ -73,7 +81,7 @@ fi
 TV_DEB_TMP="/tmp/tradingview_amd64.deb"
 curl -fL "$TV_DEB_URL" -o "$TV_DEB_TMP"
 if ! dpkg -i "$TV_DEB_TMP"; then
-  if command -v apt-get >/dev/null 2>&1; then
+  if [ "$has_real_apt" -eq 1 ]; then
     apt-get -f install -y >/dev/null 2>&1
     dpkg -i "$TV_DEB_TMP"
   else
