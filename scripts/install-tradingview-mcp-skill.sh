@@ -23,7 +23,7 @@ is_inside_container() {
   grep -qaE '(docker|containerd|kubepods)' /proc/1/cgroup 2>/dev/null
 }
 
-INNER_CMD="$(cat <<EOF
+INNER_CMD="$(cat <<'EOF'
 set -eu
 
 if ! command -v git >/dev/null 2>&1; then
@@ -46,43 +46,44 @@ if ! command -v xvfb-run >/dev/null 2>&1; then
   apt-get install -y xvfb
 fi
 
-mkdir -p '${WORKSPACE_DIR}'
+mkdir -p "$WORKSPACE_DIR"
 
-if [ -d '${REPO_DIR}/.git' ]; then
-  git -C '${REPO_DIR}' remote set-url origin '${REPO_URL}'
-  git -C '${REPO_DIR}' fetch --prune origin
-  if git -C '${REPO_DIR}' rev-parse --verify --quiet 'origin/${REPO_REF}' >/dev/null; then
-    git -C '${REPO_DIR}' checkout -B '${REPO_REF}' 'origin/${REPO_REF}'
+if [ -d "$REPO_DIR/.git" ]; then
+  git -C "$REPO_DIR" remote set-url origin "$REPO_URL"
+  git -C "$REPO_DIR" fetch --prune origin
+  if git -C "$REPO_DIR" rev-parse --verify --quiet "origin/$REPO_REF" >/dev/null; then
+    git -C "$REPO_DIR" checkout -B "$REPO_REF" "origin/$REPO_REF"
   else
-    git -C '${REPO_DIR}' checkout '${REPO_REF}'
+    git -C "$REPO_DIR" checkout "$REPO_REF"
   fi
 else
-  rm -rf '${REPO_DIR}'
-  git clone '${REPO_URL}' '${REPO_DIR}'
-  if git -C '${REPO_DIR}' rev-parse --verify --quiet 'origin/${REPO_REF}' >/dev/null; then
-    git -C '${REPO_DIR}' checkout -B '${REPO_REF}' 'origin/${REPO_REF}'
+  rm -rf "$REPO_DIR"
+  git clone "$REPO_URL" "$REPO_DIR"
+  if git -C "$REPO_DIR" rev-parse --verify --quiet "origin/$REPO_REF" >/dev/null; then
+    git -C "$REPO_DIR" checkout -B "$REPO_REF" "origin/$REPO_REF"
   else
-    git -C '${REPO_DIR}' checkout '${REPO_REF}'
+    git -C "$REPO_DIR" checkout "$REPO_REF"
   fi
 fi
 
-if [ ! -f '${LAUNCH_SCRIPT}' ]; then
-  echo 'Missing launch script: ${LAUNCH_SCRIPT}' >&2
+if [ ! -f "$LAUNCH_SCRIPT" ]; then
+  echo "Missing launch script: $LAUNCH_SCRIPT" >&2
   exit 1
 fi
 
-python3 - <<'PY'
+LAUNCH_SCRIPT="$LAUNCH_SCRIPT" python3 - <<'PY'
+import os
 from pathlib import Path
 
-launch_path = Path('${LAUNCH_SCRIPT}')
+launch_path = Path(os.environ['LAUNCH_SCRIPT'])
 text = launch_path.read_text(encoding='utf-8')
 lines = text.splitlines()
-target = 'xvfb-run -a \"\$APP\" --remote-debugging-port=\$PORT --no-sandbox'
+target = 'xvfb-run -a "$APP" --remote-debugging-port=$PORT --no-sandbox'
 replaced = False
 next_lines = []
 for line in lines:
     stripped = line.strip()
-    if '\"$APP\"' in stripped and '--remote-debugging-port=$PORT' in stripped:
+    if '"$APP"' in stripped and '--remote-debugging-port=$PORT' in stripped:
         indent = line[: len(line) - len(line.lstrip())]
         next_lines.append(f'{indent}{target}')
         replaced = True
@@ -92,17 +93,17 @@ if not replaced:
     if next_lines and next_lines[-1] != '':
         next_lines.append('')
     next_lines.append(target)
-launch_path.write_text('\\n'.join(next_lines) + '\\n', encoding='utf-8')
+launch_path.write_text('\n'.join(next_lines) + '\n', encoding='utf-8')
 PY
 
-if ! grep -Fq 'xvfb-run -a \"\$APP\" --remote-debugging-port=\$PORT --no-sandbox' '${LAUNCH_SCRIPT}'; then
-  echo 'Failed to enforce launch command pattern in ${LAUNCH_SCRIPT}' >&2
+if ! grep -Fq 'xvfb-run -a "$APP" --remote-debugging-port=$PORT --no-sandbox' "$LAUNCH_SCRIPT"; then
+  echo "Failed to enforce launch command pattern in $LAUNCH_SCRIPT" >&2
   exit 1
 fi
 
-OPENCLAW_MCP_SERVER_NAME='${SERVER_NAME}' \
-OPENCLAW_MCP_REPO_DIR='${REPO_DIR}' \
-OPENCLAW_MCP_SERVER_SCRIPT='${SERVER_SCRIPT}' \
+OPENCLAW_MCP_SERVER_NAME="$SERVER_NAME" \
+OPENCLAW_MCP_REPO_DIR="$REPO_DIR" \
+OPENCLAW_MCP_SERVER_SCRIPT="$SERVER_SCRIPT" \
 python3 - <<'PY'
 import json
 import os
@@ -172,7 +173,7 @@ for path in targets:
     agents['defaults'] = defaults
     doc['agents'] = agents
 
-    path.write_text(json.dumps(doc, indent=2) + '\\n', encoding='utf-8')
+    path.write_text(json.dumps(doc, indent=2) + '\n', encoding='utf-8')
     updated_paths.append(path)
 
 if not updated_paths:
@@ -219,11 +220,26 @@ EOF
 if is_inside_container; then
   log_status "[tradingview-mcp] install started"
   trap 'log_status "[tradingview-mcp] install failed"' ERR
-  sh -lc "${INNER_CMD}"
+  WORKSPACE_DIR="$WORKSPACE_DIR" \
+  REPO_DIR="$REPO_DIR" \
+  REPO_URL="$REPO_URL" \
+  REPO_REF="$REPO_REF" \
+  LAUNCH_SCRIPT="$LAUNCH_SCRIPT" \
+  SERVER_NAME="$SERVER_NAME" \
+  SERVER_SCRIPT="$SERVER_SCRIPT" \
+  sh -lc "$INNER_CMD"
 else
   log_status "[tradingview-mcp] install started"
   trap 'log_status "[tradingview-mcp] install failed"' ERR
-  docker exec "${CONTAINER_NAME}" sh -lc "${INNER_CMD}"
+  docker exec \
+    -e WORKSPACE_DIR="$WORKSPACE_DIR" \
+    -e REPO_DIR="$REPO_DIR" \
+    -e REPO_URL="$REPO_URL" \
+    -e REPO_REF="$REPO_REF" \
+    -e LAUNCH_SCRIPT="$LAUNCH_SCRIPT" \
+    -e SERVER_NAME="$SERVER_NAME" \
+    -e SERVER_SCRIPT="$SERVER_SCRIPT" \
+    "$CONTAINER_NAME" sh -lc "$INNER_CMD"
 fi
 
 log_status "[tradingview-mcp] install completed successfully"
