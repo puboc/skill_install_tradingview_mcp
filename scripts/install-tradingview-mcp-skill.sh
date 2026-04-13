@@ -37,22 +37,8 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 
-has_real_apt=0
-if command -v apt-get >/dev/null 2>&1; then
-  apt_version_line="$(apt-get --version 2>/dev/null | head -n 1 || true)"
-  if printf '%s' "$apt_version_line" | grep -Eq '^apt '; then
-    has_real_apt=1
-  fi
-fi
-
-if [ "$has_real_apt" -ne 1 ]; then
-  echo 'Real apt-get is required but not available in this runtime.' >&2
-  if command -v apt-get >/dev/null 2>&1; then
-    echo "Detected apt-get at: $(command -v apt-get)" >&2
-    echo "apt-get --version: $(apt-get --version 2>/dev/null | head -n 1 || true)" >&2
-  else
-    echo 'apt-get command not found in PATH.' >&2
-  fi
+if [ ! -x /usr/bin/apt ]; then
+  echo '/usr/bin/apt is required but not available in this runtime.' >&2
   exit 1
 fi
 
@@ -64,8 +50,8 @@ if ! command -v xvfb-run >/dev/null 2>&1; then
     install_ok=1
   fi
   if [ "$install_ok" -ne 1 ]; then
-    echo 'apt-get failed to install xvfb.' >&2
-    echo 'apt-get error (tail):' >&2
+    echo '/usr/bin/apt failed to install xvfb.' >&2
+    echo 'apt error (tail):' >&2
     tail -n 50 "$apt_log" >&2 || true
     exit 1
   fi
@@ -83,13 +69,8 @@ fi
 TV_DEB_TMP="/tmp/tradingview_amd64.deb"
 curl -fL "$TV_DEB_URL" -o "$TV_DEB_TMP"
 if ! dpkg -i "$TV_DEB_TMP"; then
-  if [ "$has_real_apt" -eq 1 ]; then
-    /usr/bin/apt -f install -y >/dev/null 2>&1
-    dpkg -i "$TV_DEB_TMP"
-  else
-    echo 'TradingView package install failed and apt-get is unavailable for dependency fix.' >&2
-    exit 1
-  fi
+  /usr/bin/apt -f install -y >/dev/null 2>&1
+  dpkg -i "$TV_DEB_TMP"
 fi
 rm -f "$TV_DEB_TMP"
 
