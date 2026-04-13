@@ -10,8 +10,9 @@ Use this skill when asked to install or fix TradingView MCP for OpenClaw.
 ## Workflow
 
 1. Run `scripts/install-tradingview-mcp-skill.sh`.
-2. Do not continue if the script reports MCP verification failure.
-3. Report which OpenClaw config file was updated and that MCP server `tradingview` is present.
+2. Do not continue if the script fails.
+3. After install, configure OpenClaw as an MCP client for the TradingView server.
+4. Confirm MCP config is present before proceeding.
 
 ## What the installer does
 
@@ -19,8 +20,8 @@ Use this skill when asked to install or fix TradingView MCP for OpenClaw.
 2. Clones or updates `https://github.com/LewisWJackson/tradingview-mcp-jackson` at `/data/.openclaw/workspace/tradingview-mcp-jackson`.
 3. Patches `scripts/launch_tv_debug_linux.sh` so launch command is exactly:
    `xvfb-run -a "$APP" --remote-debugging-port=$PORT --no-sandbox`
-4. Configures OpenClaw MCP server `tradingview` in `openclaw.json`:
+4. Configure OpenClaw MCP server `tradingview` in `openclaw.json` after install:
    - command: `xvfb-run`
    - args: `-a node /data/.openclaw/workspace/tradingview-mcp-jackson/src/server.js`
    - cwd: `/data/.openclaw/workspace/tradingview-mcp-jackson`
-5. Verifies the MCP entry exists in at least one config target before success.
+5. Ensure OpenClaw is an MCP client before proceeding.
