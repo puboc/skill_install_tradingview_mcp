@@ -471,6 +471,9 @@ Use this skill when asked to inject TradingView cookies into the running desktop
 - `inject-cookies`: wrapper that converts a raw cookie string into JSON and calls the injector.
 - `cookies-inject-tradingview.sh`: low-level CDP cookie injector.
 EOF
+
+chown -R 1000:1000 "$SKILLS_DIR" 2>/dev/null || true
+chmod -R u+rwX,g+rwX "$SKILLS_DIR" 2>/dev/null || true
 __INNER_CMD__
 )"
 
