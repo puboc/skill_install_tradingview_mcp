@@ -98,6 +98,7 @@ if ! command -v npm >/dev/null 2>&1; then
   exit 1
 fi
 npm --prefix "$REPO_DIR" install
+npm --prefix "$REPO_DIR" link
 
 if [ ! -f "$LAUNCH_SCRIPT" ]; then
   echo "Missing launch script: $LAUNCH_SCRIPT" >&2
