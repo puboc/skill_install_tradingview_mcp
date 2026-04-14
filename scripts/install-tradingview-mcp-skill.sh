@@ -93,6 +93,12 @@ else
   fi
 fi
 
+if ! command -v npm >/dev/null 2>&1; then
+  echo 'Missing required command inside container: npm' >&2
+  exit 1
+fi
+npm --prefix "$REPO_DIR" install
+
 if [ ! -f "$LAUNCH_SCRIPT" ]; then
   echo "Missing launch script: $LAUNCH_SCRIPT" >&2
   exit 1
