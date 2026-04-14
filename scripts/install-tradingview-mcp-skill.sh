@@ -116,7 +116,7 @@ from pathlib import Path
 launch_path = Path(os.environ['LAUNCH_SCRIPT'])
 text = launch_path.read_text(encoding='utf-8')
 lines = text.splitlines()
-target = 'xvfb-run -a "$APP" --remote-debugging-port=$PORT --no-sandbox --disable-gpu --disable-software-rasterizer --disable-dev-shm-usage'
+target = 'exec xvfb-run -a "$APP" --remote-debugging-port=$PORT --no-sandbox --disable-gpu --disable-software-rasterizer --disable-dev-shm-usage'
 replaced = False
 next_lines = []
 for line in lines:
@@ -134,7 +134,7 @@ if not replaced:
 launch_path.write_text('\n'.join(next_lines) + '\n', encoding='utf-8')
 PY
 
-if ! grep -Fq 'xvfb-run -a "$APP" --remote-debugging-port=$PORT --no-sandbox --disable-gpu --disable-software-rasterizer --disable-dev-shm-usage' "$LAUNCH_SCRIPT"; then
+if ! grep -Fq 'exec xvfb-run -a "$APP" --remote-debugging-port=$PORT --no-sandbox --disable-gpu --disable-software-rasterizer --disable-dev-shm-usage' "$LAUNCH_SCRIPT"; then
   echo "Failed to enforce launch command pattern in $LAUNCH_SCRIPT" >&2
   exit 1
 fi
