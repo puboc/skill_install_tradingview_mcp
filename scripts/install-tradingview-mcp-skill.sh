@@ -115,6 +115,7 @@ from pathlib import Path
 
 launch_path = Path(os.environ['LAUNCH_SCRIPT'])
 text = launch_path.read_text(encoding='utf-8')
+text = text.replace('pkill -f "[Tt]rading[Vv]iew" 2>/dev/null', 'pkill -f "^$APP" || true')
 lines = text.splitlines()
 target = 'xvfb-run -a "$APP" --remote-debugging-port=$PORT --no-sandbox --disable-gpu --disable-software-rasterizer --disable-dev-shm-usage'
 replaced = False
